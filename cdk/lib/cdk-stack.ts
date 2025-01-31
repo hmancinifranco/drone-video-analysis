@@ -36,7 +36,7 @@ export class CdkStack extends cdk.Stack {
         // Create a vpc and elastic IP
         const vpc = new cdk.aws_ec2.Vpc(this, 'network-vpc', {});
 
-        const eip = new cdk.aws_ec2.CfnEIP(this, 'ec2-proxy-static-ip', {});
+        const eip = new cdk.aws_ec2.CfnEIP(this, 'ec2-proxy-static-ip');
 
         // create an ec2 instance with a public IP
         // new ssh keypair
@@ -46,7 +46,7 @@ export class CdkStack extends cdk.Stack {
 
         // new security group that opens up port 22, 1935 and 8080, 9997
         //  22 for ssh, 1935 for rtmp, 8080 for http, 9997 for rtsp-server-http-api
-        const allowPortsOpen = [22, 1935, 8080, 9997];
+        const allowPortsOpen = [1935, 8080, 9997];
         const securityGroup = new cdk.aws_ec2.SecurityGroup(this, 'security-group', {
             vpc: vpc,
             allowAllOutbound: true,
@@ -75,7 +75,8 @@ export class CdkStack extends cdk.Stack {
         const streamServer = new cdk.aws_ec2.Instance(this, `stream-server`, {
             vpc: vpc,
             instanceType: instanceTypeLarge,
-            machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux({}),
+            machineImage: cdk.aws_ec2.MachineImage.latestAmazonLinux2(),
+            // Usar keyName en lugar de keyPair
             keyName: chosenKeyPair.keyName,
             securityGroup: securityGroup,
             vpcSubnets: {
@@ -128,9 +129,10 @@ export class CdkStack extends cdk.Stack {
 
         // Associate the elastic IP with the instance
         new cdk.aws_ec2.CfnEIPAssociation(this, 'static-ip-association', {
-            eip: eip.ref,
+            allocationId: eip.attrAllocationId,
             instanceId: streamServer.instanceId,
         });
+        
 
 
         // Grant access to the ec2 role for kinesis video stream and s3 frames bucket
